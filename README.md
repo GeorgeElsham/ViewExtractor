@@ -1,3 +1,3 @@
 # ViewExtractor
 
-A description of this package.
+Extract SwiftUI views from ViewBuilder content.
