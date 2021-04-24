@@ -18,7 +18,7 @@ struct DividedVStack: View {
     }
     
     var body: some View {
-        VStack(alignment: .center, spacing: 0) {
+        VStack(spacing: 0) {
             ForEach(views.indices) { index in
                 if index != 0 {
                     Divider()
