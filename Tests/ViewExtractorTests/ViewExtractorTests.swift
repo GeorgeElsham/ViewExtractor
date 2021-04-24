@@ -1,11 +1,4 @@
     import XCTest
     @testable import ViewExtractor
 
-    final class ViewExtractorTests: XCTestCase {
-        func testExample() {
-            // This is an example of a functional test case.
-            // Use XCTAssert and related functions to verify your tests produce the correct
-            // results.
-            XCTAssertEqual(ViewExtractor().text, "Hello, World!")
-        }
-    }
+    final class ViewExtractorTests: XCTestCase {}
