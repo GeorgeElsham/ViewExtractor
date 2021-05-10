@@ -18,8 +18,14 @@ Here is an example which creates a `VStack` with `Divider()`s in between.
 struct DividedVStack: View {
     private let views: [AnyView]
     
+    // For 2 or more views
     init<Views>(@ViewBuilder content: ViewContent<Views>) {
         views = ViewExtractor.getViews(from: content)
+    }
+    
+    // For 0 or 1 view
+    init<Content: View>(@ViewBuilder content: () -> Content) {
+        views = [AnyView(content())]
     }
     
     var body: some View {
