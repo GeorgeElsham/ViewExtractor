@@ -19,13 +19,13 @@ struct DividedVStack: View {
     private let views: [AnyView]
     
     // For 2 or more views
-    init<Views>(@ViewBuilder content: ViewContent<Views>) {
+    init<Views>(@ViewBuilder content: TupleContent<Views>) {
         views = ViewExtractor.getViews(from: content)
     }
     
     // For 0 or 1 view
-    init<Content: View>(@ViewBuilder content: () -> Content) {
-        views = [AnyView(content())]
+    init<Content: View>(@ViewBuilder content: NormalContent<Content>) {
+        views = ViewExtractor.getViews(from: content)
     }
     
     var body: some View {
@@ -56,19 +56,6 @@ DividedVStack {
 ### Result
 
 <img src="https://user-images.githubusercontent.com/40073010/115965850-f43c5d80-a522-11eb-8113-1f73d07fade0.png" width="25%">
-
-*Note:* When no views are passed in with the second intializer, an `EmptyView` is still created. To prevent this creating a 1-element array when no views exist, change the second initializer to this:
-
-```swift
-init<Content: View>(@ViewBuilder content: () -> Content) {
-    let c = content()
-    guard !(c is EmptyView) else {
-        views = []
-        return
-    }
-    views = [AnyView(c)]
-}
-```
 
 
   [1]: https://developer.apple.com/documentation/swift_packages/adding_package_dependencies_to_your_app#3234996
