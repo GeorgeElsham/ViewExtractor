@@ -58,11 +58,22 @@ public enum ViewExtractor {
         }
     }
     
+    /// Gets view creators from `Any`. Also splits up `DynamicViewContent` into separate views.
+    /// - Parameter view: View of `Any` type.
+    /// - Returns: View creators contained by this `view`.
     public static func viewCreators(from view: Any) -> [() -> AnyView] {
+        if view is EmptyView {
+            return []
+        }
         if let forEach = view as? DynamicViewContentProvider {
             return forEach.extractCreators()
         }
-        return []
+        return withUnsafeBytes(of: view) { ptr -> [() -> AnyView] in
+            if let genericView = ptr.bindMemory(to: GenericView.self).first {
+                return [genericView.anyViewCreator]
+            }
+            return []
+        }
     }
 }
 
