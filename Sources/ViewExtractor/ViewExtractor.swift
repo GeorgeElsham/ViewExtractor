@@ -27,6 +27,20 @@ public enum ViewExtractor {
         ViewExtractor.views(from: content())
     }
     
+    /// Get view creators from a `TupleView`.
+    /// - Parameter content: Content to extract the views from
+    /// - Returns: Extracted views
+    public static func getViewCreators<Views>(@ViewBuilder from content: TupleContent<Views>) -> [() -> AnyView] {
+        content().viewCreators
+    }
+    
+    /// Get view creators from a normal view closure.
+    /// - Parameter content: Content to extract the views from
+    /// - Returns: Extracted views
+    public static func getViewCreators<Content: View>(@ViewBuilder from content: NormalContent<Content>) -> [() -> AnyView] {
+        ViewExtractor.viewCreators(from: content())
+    }
+        
     /// Gets views from `Any`. Also splits up `DynamicViewContent` into separate views.
     /// - Parameter view: View of `Any` type.
     /// - Returns: Views contained by this `view`.
@@ -43,6 +57,13 @@ public enum ViewExtractor {
             return binded.first?.anyView.map { [$0] } ?? []
         }
     }
+    
+    public static func viewCreators(from view: Any) -> [() -> AnyView] {
+        if let forEach = view as? DynamicViewContentProvider {
+            return forEach.extractCreators()
+        }
+        return []
+    }
 }
 
 
@@ -57,12 +78,18 @@ public extension TupleView {
         let children = Mirror(reflecting: value).children
         return children.flatMap { ViewExtractor.views(from: $0.value) }
     }
+    
+    var viewCreators: [() -> AnyView] {
+        let children = Mirror(reflecting: value).children.map { $0.value }
+        return children.flatMap { ViewExtractor.viewCreators(from: $0) }
+    }
 }
 
 
 // MARK: Dynamic view content
 public protocol DynamicViewContentProvider {
     func extractContent() -> [AnyView]
+    func extractCreators() -> [() -> AnyView]
 }
 
 extension ForEach: DynamicViewContentProvider where Content: View {
@@ -79,6 +106,17 @@ extension ForEach: DynamicViewContentProvider where Content: View {
                     return AnyView(newContent)
                 }
             }
+        } else {
+            return []
+        }
+    }
+    
+    public func extractCreators() -> [() -> AnyView] {
+        let mirror = Mirror(reflecting: self)
+        
+        if let data = mirror.descendant("data") as? Data,
+           let content = mirror.descendant("content") as? (Data.Element) -> Content {
+            return data.compactMap { element in { AnyView(content(element)) } }
         } else {
             return []
         }
