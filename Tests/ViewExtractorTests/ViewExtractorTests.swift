@@ -1,4 +1,4 @@
-    import XCTest
-    @testable import ViewExtractor
+@testable import ViewExtractor
+import XCTest
 
-    final class ViewExtractorTests: XCTestCase {}
+final class ViewExtractorTests: XCTestCase {}
