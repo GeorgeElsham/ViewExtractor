@@ -32,6 +32,27 @@ public enum ViewExtractor {
     /// - Parameter view: View of `Any` type.
     /// - Returns: Views contained by this `view`.
     public static func views(from view: Any) -> [AnyView] {
+        checkingViewContent(view) {
+            // Just a normal view. Convert it from type `Any` to `AnyView`.
+            withUnsafeBytes(of: view) { ptr -> [AnyView] in
+                // Cast from type `Any` to `GenericView`,
+                // which mimics the structure of a `View`.
+                let binded = ptr.bindMemory(to: GenericView.self)
+
+                // Get `AnyView` from the 'fake' view body.
+                return binded.first?.anyView.map { [$0] } ?? []
+            }
+        }
+    }
+
+    /// Return the view content. This removes views like `EmptyView`,
+    /// and gets content from within `ForEach`.
+    ///
+    /// - Parameters:
+    ///   - view: View to test.
+    ///   - actual: If this is a normal view, this content is used.
+    /// - Returns: Array of content views.
+    fileprivate static func checkingViewContent(_ view: Any, actual: () -> [AnyView]) -> [AnyView] {
         // Check this is not an empty view with no content.
         if view is EmptyView {
             return []
@@ -42,15 +63,8 @@ public enum ViewExtractor {
             return forEach.extractContent()
         }
 
-        // Just a normal view. Convert it from type `Any` to `AnyView`.
-        return withUnsafeBytes(of: view) { ptr -> [AnyView] in
-            // Cast from type `Any` to `GenericView`,
-            // which mimics the structure of a `View`.
-            let binded = ptr.bindMemory(to: GenericView.self)
-
-            // Get `AnyView` from the 'fake' view body.
-            return binded.first?.anyView.map { [$0] } ?? []
-        }
+        // Actual view.
+        return actual()
     }
 }
 
@@ -84,16 +98,13 @@ extension ForEach: DynamicViewContentProvider where Content: View {
         if let data = mirror.descendant("data") as? Data,
            let content = mirror.descendant("content") as? (Data.Element) -> Content
         {
-            return data.compactMap { element in
+            return data.flatMap { element -> [AnyView] in
                 // Create content given the data for this `ForEach` element.
                 let newContent = content(element)
 
-                if newContent is EmptyView {
-                    // Content is of type `EmptyView`,
-                    // therefore this has no actual content.
-                    return nil
-                } else {
-                    return AnyView(newContent)
+                // Gets content for element.
+                return ViewExtractor.checkingViewContent(newContent) {
+                    [AnyView(newContent)]
                 }
             }
         } else {
