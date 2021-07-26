@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - ViewExtractor
 
 /// Extract SwiftUI views from ViewBuilder content.
-public enum ViewExtractor {
+public struct ViewExtractor {
     /// Represents a `View`. Can be used to get `AnyView` from `Any`.
     public struct GenericView {
         let body: Any
@@ -12,6 +12,39 @@ public enum ViewExtractor {
         var anyView: AnyView? {
             AnyView(_fromValue: body)
         }
+    }
+
+    /// If the content is a `ForEach`, this gives the range. If it fails, it returns `nil`.
+    public var forEachRange: Range<Int>? {
+        struct FakeCollection {
+            let indices: Range<Int>
+        }
+
+        // Reflect `ForEach` to get the `data`.
+        guard let forEach = forEach else { return nil }
+        let mirror = Mirror(reflecting: forEach)
+        guard let data = mirror.descendant("data") else { return nil }
+
+        // Bind the collection to `FakeCollection`, to get the `indices`.
+        return withUnsafeBytes(of: data) { ptr -> Range<Int>? in
+            let binded = ptr.bindMemory(to: FakeCollection.self)
+            return binded.first?.indices
+        }
+    }
+
+    private let forEach: DynamicViewContentProvider?
+
+    public init<Content: View & DynamicViewContentProvider>(content: ForEachContent<Content>) {
+        forEach = content()
+    }
+
+    /// Get the view at this exact index, ignoring types of views
+    /// checks. For example, `EmptyView` won't be ignored.
+    ///
+    /// - Parameter index: Index within `ForEach` to get.
+    /// - Returns: View at this index, or `nil` if none.
+    public func uncheckedView(at index: Int) -> AnyView? {
+        forEach?.extractContent(at: index)
     }
 
     /// Gets views from a `TupleView`.
@@ -72,6 +105,7 @@ public enum ViewExtractor {
 
 public typealias TupleContent<Views> = () -> TupleView<Views>
 public typealias NormalContent<Content: View> = () -> Content
+public typealias ForEachContent<Content: View & DynamicViewContentProvider> = () -> Content
 
 // MARK: - TupleView views
 
@@ -87,6 +121,7 @@ public extension TupleView {
 
 public protocol DynamicViewContentProvider {
     func extractContent() -> [AnyView]
+    func extractContent(at index: Int) -> AnyView?
 }
 
 extension ForEach: DynamicViewContentProvider where Content: View {
@@ -111,5 +146,20 @@ extension ForEach: DynamicViewContentProvider where Content: View {
             // Return no content if failure.
             return []
         }
+    }
+
+    public func extractContent(at index: Int) -> AnyView? {
+        // Dynamically mirrors the current instance.
+        let mirror = Mirror(reflecting: self)
+
+        // Check view is valid.
+        guard let data = mirror.descendant("data") as? Data,
+              0 ..< data.count ~= index,
+              let content = mirror.descendant("content") as? (Data.Element) -> Content
+        else { return nil }
+
+        // Return view for specific index.
+        let dataIndex = data.index(data.startIndex, offsetBy: index)
+        return AnyView(content(data[dataIndex]))
     }
 }
