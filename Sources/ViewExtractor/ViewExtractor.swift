@@ -91,6 +91,11 @@ public struct ViewExtractor {
             return []
         }
 
+        // Check this is not a `nil` view. Can occur due to conditionals.
+        if case Optional<Any>.none = view {
+            return []
+        }
+
         // If this view is a `ForEach`, extract all contained views.
         if let forEach = view as? DynamicViewContentProvider {
             return forEach.extractContent()
