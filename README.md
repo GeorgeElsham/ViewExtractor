@@ -48,7 +48,7 @@ DividedVStack {
 
 ### Result
 
-<img src="" width="25%">
+<img width="400" alt="Example #1 result" src="https://user-images.githubusercontent.com/40073010/202593448-02ad4069-0c9a-4bff-85cd-ddd9313b3c51.png">
 
 
 ## Example #2
@@ -87,7 +87,7 @@ IntervalVStack {
 
 ### Result
 
-<img src="" width="25%">
+<img width="400" alt="Example #2 result" src="https://user-images.githubusercontent.com/40073010/202593730-594d45f9-6abf-46a8-8dba-1f93ec89e55d.png">
 
 
 ## Example #3
@@ -131,7 +131,7 @@ HStack {
 
 ### Result
 
-<img src="" width="25%">
+<img width="400" alt="Example #3 result" src="https://user-images.githubusercontent.com/40073010/202593772-bf61b3bb-3d64-4d5f-8a57-1132ed2ba2d2.png">
 
 
   [1]: https://developer.apple.com/documentation/swift_packages/adding_package_dependencies_to_your_app#3234996
