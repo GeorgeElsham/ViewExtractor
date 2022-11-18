@@ -10,32 +10,26 @@ Follow the instructions at [Adding Package Dependencies to Your App][1] to find 
 
 ## Example #1
 
-Here is an example which creates a `VStack` with `Divider()`s in between.
+Create a vertical stack of views, separated by dividers.
 
 ### View code
 
 ```swift
-struct DividedVStack: View {
-    private let views: [AnyView]
-    
-    // For 2 or more views
-    init<Views>(@ViewBuilder content: TupleContent<Views>) {
-        views = ViewExtractor.getViews(from: content)
-    }
-    
-    // For 0 or 1 view
-    init<Content: View>(@ViewBuilder content: NormalContent<Content>) {
-        views = ViewExtractor.getViews(from: content)
-    }
-    
+struct DividedVStack<Content: View>: View {
+    @ViewBuilder let content: Content
+
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(views.indices) { index in
-                if index != 0 {
-                    Divider()
+        Extract(content) { views in
+            VStack {
+                let first = views.first?.id
+
+                ForEach(views) { view in
+                    if view.id != first {
+                        Divider()
+                    }
+
+                    view
                 }
-                
-                views[index]
             }
         }
     }
@@ -49,34 +43,31 @@ DividedVStack {
     Text("View 1")
     Text("View 2")
     Text("View 3")
-    Image(systemName: "circle")
 }
 ```
 
 ### Result
 
-<img src="https://user-images.githubusercontent.com/40073010/115965850-f43c5d80-a522-11eb-8113-1f73d07fade0.png" width="25%">
+<img width="400" alt="Example #1 result" src="https://user-images.githubusercontent.com/40073010/202593448-02ad4069-0c9a-4bff-85cd-ddd9313b3c51.png">
 
 
 ## Example #2
 
-Here is an example which creates a `VStack` of views, for every multiple of 2. The views are loaded lazily, so they aren't all computed at once which would waste resources if half of them aren't used.
+Create a vertical stack of views, only keeping views at indexes with a multiple of 2.
 
 ### View code
 
 ```swift
-struct IntervalVStack: View {
-    private let extractor: ViewExtractor
-
-    init<Content: View & DynamicViewContentProvider>(content: ForEachContent<Content>) {
-        extractor = ViewExtractor(content: content)
-    }
+struct IntervalVStack<Content: View>: View {
+    @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(extractor.forEachRange!) { index in
-                if index.isMultiple(of: 2) {
-                    extractor.uncheckedView(at: index)
+        Extract(content) { views in
+            VStack {
+                ForEach(Array(zip(views.indices, views)), id: \.1.id) { index, view in
+                    if index.isMultiple(of: 2) {
+                        view
+                    }
                 }
             }
         }
@@ -96,7 +87,51 @@ IntervalVStack {
 
 ### Result
 
-<img src="https://user-images.githubusercontent.com/40073010/127054749-e5d27295-f179-41bd-9517-3b2d0eb4b970.png" width="25%">
+<img width="400" alt="Example #2 result" src="https://user-images.githubusercontent.com/40073010/202593730-594d45f9-6abf-46a8-8dba-1f93ec89e55d.png">
+
+
+## Example #3
+
+Create a stack of views, returning multiple views as a result, allowing it to be wrapped by another view. When modifiers are applied, they apply to each view returned. Note the use of `ExtractMulti` rather than just `Extract`.
+
+### View code
+
+```swift
+struct Divided<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        ExtractMulti(content) { views in
+            let first = views.first?.id
+
+            ForEach(views) { view in
+                if view.id != first {
+                    Divider()
+                }
+
+                view
+            }
+        }
+    }
+}
+```
+
+### Usage
+
+```swift
+HStack {
+    Divided {
+        Text("View 1")
+        Text("View 2")
+        Text("View 3")
+    }
+    .border(Color.red)
+}
+```
+
+### Result
+
+<img width="400" alt="Example #3 result" src="https://user-images.githubusercontent.com/40073010/202593772-bf61b3bb-3d64-4d5f-8a57-1132ed2ba2d2.png">
 
 
   [1]: https://developer.apple.com/documentation/swift_packages/adding_package_dependencies_to_your_app#3234996
